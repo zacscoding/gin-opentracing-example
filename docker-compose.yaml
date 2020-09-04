@@ -29,3 +29,24 @@ services:
     ports:
       - "3200:3200"
     command: gin-opentracing service2
+  service3:
+    image: gin-opentracing-example
+    container_name: service3
+    hostname: service3
+    ports:
+      - "3300:3300"
+    command: gin-opentracing service3
+  service4:
+    image: gin-opentracing-example
+    container_name: service4
+    hostname: service4
+    ports:
+      - "3400:3400"
+    command: gin-opentracing service4
+  service5:
+    image: gin-opentracing-example
+    container_name: service5
+    hostname: service5
+    ports:
+      - "3500:3500"
+    command: gin-opentracing service5

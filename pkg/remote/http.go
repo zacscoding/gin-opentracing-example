@@ -25,8 +25,8 @@ func init() {
 		NoDefaultUserAgentHeader: true,
 		ReadBufferSize:           4096,
 		WriteBufferSize:          4096,
-		ReadTimeout:              3 * time.Second,
-		WriteTimeout:             3 * time.Second,
+		ReadTimeout:              10 * time.Second,
+		WriteTimeout:             10 * time.Second,
 		MaxIdleConnDuration:      90 * time.Second,
 	}
 }

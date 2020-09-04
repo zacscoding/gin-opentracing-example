@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/opentracing/opentracing-go"
 	"net/http"
+	"sync"
 )
 
 func StartService1Server() {
@@ -28,32 +29,58 @@ func StartService1Server() {
 				"headers": ctx.Request.Header,
 			},
 		}
+
+		var wait sync.WaitGroup
+		wait.Add(2)
+
 		// 1) call service2
-		code, body, err := remote.HttpGet(ctx.Request.Context(), "http://service2:3200/service2/trace", "service2")
-		if err != nil {
-			ret["service2"] = gin.H{
-				"code":  code,
-				"error": err.Error(),
+		go func() {
+			defer wait.Done()
+
+			code, body, err := remote.HttpGet(ctx.Request.Context(), "http://service2:3200/service2/trace", "/service2/trace")
+			if err != nil {
+				ret["service2"] = gin.H{
+					"code":  code,
+					"error": err.Error(),
+				}
+			} else {
+				ret["service2"] = gin.H{
+					"code": code,
+					"body": body,
+				}
 			}
-		} else {
-			ret["service2"] = gin.H{
-				"code": code,
-				"body": body,
+		}()
+
+		// 2) call service3, service4
+		go func() {
+			defer wait.Done()
+			code, body, err := remote.HttpGet(ctx.Request.Context(), "http://service3:3300/service3/trace", "/service3/trace")
+			if err != nil {
+				ret["service3"] = gin.H{
+					"code":  code,
+					"error": err.Error(),
+				}
+			} else {
+				ret["service3"] = gin.H{
+					"code": code,
+					"body": body,
+				}
 			}
-		}
-		// 2) call service3
-		code, body, err = remote.HttpGet(ctx.Request.Context(), "http://service3:3300/service3/trace", "service3")
-		if err != nil {
-			ret["service3"] = gin.H{
-				"code":  code,
-				"error": err.Error(),
+			// 3) call service4
+			code, body, err = remote.HttpGet(ctx.Request.Context(), "http://service4:3400/service4/trace", "/service4/trace")
+			if err != nil {
+				ret["service4"] = gin.H{
+					"code":  code,
+					"error": err.Error(),
+				}
+			} else {
+				ret["service4"] = gin.H{
+					"code": code,
+					"body": body,
+				}
 			}
-		} else {
-			ret["service3"] = gin.H{
-				"code": code,
-				"body": body,
-			}
-		}
+		}()
+		wait.Wait()
 		ctx.JSON(http.StatusOK, ret)
 	})
 
