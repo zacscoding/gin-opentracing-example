@@ -5,7 +5,6 @@ import (
 	"gin-opentracing-example/pkg/logging"
 	"gin-opentracing-example/pkg/middleware"
 	"github.com/gin-gonic/gin"
-	"github.com/opentracing/opentracing-go"
 	"math/rand"
 	"net/http"
 	"time"
@@ -15,7 +14,7 @@ func StartService4Server() {
 	gin.SetMode(gin.DebugMode)
 	e := gin.Default()
 
-	e.Use(middleware.NewRequestIdMiddleware(), middleware.NewTracingMiddleware(opentracing.GlobalTracer()))
+	e.Use(middleware.NewRequestIdMiddleware(), middleware.NewTracingMiddleware(middleware.MWComponentName("service4")))
 	e.GET("/service4/trace", func(ctx *gin.Context) {
 		sleep := rand.Intn(3)
 		logger := logging.FromContext(ctx.Request.Context())

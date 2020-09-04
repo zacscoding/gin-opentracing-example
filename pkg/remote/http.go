@@ -3,9 +3,7 @@ package remote
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"gin-opentracing-example/pkg/logging"
-	"gin-opentracing-example/pkg/middleware"
+	"gin-opentracing-example/pkg/trace"
 	"github.com/opentracing/opentracing-go"
 	"github.com/valyala/fasthttp"
 	"net/http"
@@ -38,23 +36,25 @@ func HttpGet(ctx context.Context, requestURI, operationName string) (StatusCode,
 	defer fasthttp.ReleaseRequest(req)
 	defer fasthttp.ReleaseResponse(resp)
 
+	var err error
 	header := make(http.Header)
 
+	// TOOD : refactor to trace package
 	// setup span
-	span, ctx := opentracing.StartSpanFromContext(ctx, operationName)
-	v := span.BaggageItem(middleware.RequestIdKey)
-	fmt.Println("## Check request id :", v)
 	tracer := opentracing.GlobalTracer()
-	err := tracer.Inject(span.Context(), opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(header))
-	logging.FromContext(ctx).Infow(">> Inject http header", "headers", header)
-
-	if err != nil {
-		return 0, nil, err
+	if span := opentracing.SpanFromContext(ctx); span != nil {
+		span := tracer.StartSpan(operationName, opentracing.ChildOf(span.Context()))
+		defer span.Finish()
+		err := tracer.Inject(span.Context(), opentracing.HTTPHeaders, opentracing.HTTPHeadersCarrier(header))
+		if err != nil {
+			return 0, nil, err
+		}
 	}
 
 	req.SetRequestURI(requestURI)
 	req.Header.SetMethod("GET")
 	req.Header.Add("Accept", AcceptJson)
+	req.Header.Add("X-Request-ID",trace.ExtractRequestId(ctx))
 	for k, v := range header {
 		if len(v) > 0 {
 			req.Header.Add(k, v[0])

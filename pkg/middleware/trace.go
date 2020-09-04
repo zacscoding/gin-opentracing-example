@@ -2,6 +2,7 @@
 package middleware
 
 import (
+	"gin-opentracing-example/pkg/trace"
 	"github.com/gin-gonic/gin"
 	"github.com/opentracing/opentracing-go"
 	"github.com/opentracing/opentracing-go/ext"
@@ -56,7 +57,7 @@ func MWURLTagFunc(f func(u *url.URL) string) MWOption {
 
 // Middleware is a gin native version of the equivalent middleware in:
 //   https://github.com/opentracing-contrib/go-stdlib/
-func NewTracingMiddleware(tr opentracing.Tracer, options ...MWOption) gin.HandlerFunc {
+func NewTracingMiddleware(options ...MWOption) gin.HandlerFunc {
 	opts := mwOptions{
 		opNameFunc: func(r *http.Request) string {
 			return "HTTP " + r.Method
@@ -71,16 +72,11 @@ func NewTracingMiddleware(tr opentracing.Tracer, options ...MWOption) gin.Handle
 	}
 
 	return func(c *gin.Context) {
-		var span opentracing.Span
-		carrier := opentracing.HTTPHeadersCarrier(c.Request.Header)
-		wireContext, err := tr.Extract(opentracing.HTTPHeaders, carrier)
-		if err != nil {
-			span = opentracing.StartSpan(c.Request.URL.Path)
-		} else {
-			span = opentracing.StartSpan(c.Request.URL.Path, opentracing.ChildOf(wireContext))
-		}
+		span := trace.ExtractSpan(c)
 		defer span.Finish()
-		span.SetTag("request.id", c.Request.Header.Get("X-Request-Id"))
+
+		requestId := trace.ExtractRequestId(c.Request.Context())
+		span.SetTag("request.id", requestId)
 
 		ext.HTTPMethod.Set(span, c.Request.Method)
 		ext.HTTPUrl.Set(span, opts.urlTagFunc(c.Request.URL))

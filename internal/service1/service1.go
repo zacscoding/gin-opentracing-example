@@ -15,7 +15,7 @@ func StartService1Server() {
 	gin.SetMode(gin.DebugMode)
 	e := gin.Default()
 
-	e.Use(middleware.NewRequestIdMiddleware(), middleware.NewTracingMiddleware(opentracing.GlobalTracer()))
+	e.Use(middleware.NewRequestIdMiddleware(), middleware.NewTracingMiddleware(middleware.MWComponentName("service1")))
 	e.GET("/service1/trace", func(ctx *gin.Context) {
 		logger := logging.FromContext(ctx.Request.Context())
 		logger.Infow("## Requested /service1/trace parameters", "header", ctx.Request.Header)
@@ -37,7 +37,7 @@ func StartService1Server() {
 		go func() {
 			defer wait.Done()
 
-			code, body, err := remote.HttpGet(ctx.Request.Context(), "http://service2:3200/service2/trace", "/service2/trace")
+			code, body, err := remote.HttpGet(ctx.Request.Context(), "http://service2:3200/service2/trace", "call /service2/trace")
 			if err != nil {
 				ret["service2"] = gin.H{
 					"code":  code,
@@ -54,7 +54,7 @@ func StartService1Server() {
 		// 2) call service3, service4
 		go func() {
 			defer wait.Done()
-			code, body, err := remote.HttpGet(ctx.Request.Context(), "http://service3:3300/service3/trace", "/service3/trace")
+			code, body, err := remote.HttpGet(ctx.Request.Context(), "http://service3:3300/service3/trace", "call /service3/trace")
 			if err != nil {
 				ret["service3"] = gin.H{
 					"code":  code,
@@ -67,7 +67,7 @@ func StartService1Server() {
 				}
 			}
 			// 3) call service4
-			code, body, err = remote.HttpGet(ctx.Request.Context(), "http://service4:3400/service4/trace", "/service4/trace")
+			code, body, err = remote.HttpGet(ctx.Request.Context(), "http://service4:3400/service4/trace", "call /service4/trace")
 			if err != nil {
 				ret["service4"] = gin.H{
 					"code":  code,

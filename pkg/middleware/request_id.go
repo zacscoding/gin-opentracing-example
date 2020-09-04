@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"gin-opentracing-example/pkg/logging"
+	"gin-opentracing-example/pkg/trace"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -25,9 +26,11 @@ func NewRequestIdMiddleware() gin.HandlerFunc {
 		} else {
 			logging.DefaultLogger().Info("use exist request id > " + requestId)
 		}
-		ctx.Set(RequestIdHeaderKey, requestId)
-		newCtx := logging.WithLogger(ctx.Request.Context(), logging.DefaultLogger().With("requestId", requestId))
-		ctx.Request = ctx.Request.WithContext(newCtx)
+		// attach request id
+		ctx.Request = ctx.Request.WithContext(trace.WithRequestId(ctx.Request.Context(), requestId))
+		// attach logger
+		ctx.Request = ctx.Request.WithContext(logging.WithLogger(ctx.Request.Context(),
+			logging.DefaultLogger().With("requestId", requestId)))
 		ctx.Writer.Header().Add(RequestIdHeaderKey, requestId)
 	}
 }
